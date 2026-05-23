@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --navy: #042c53;
+  --clinical-blue: #185fa5;
+  --clinical-green: #1d9e75;
+  --soft-white: #f1efe8;
+  --sky-accent: #85b7eb;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+html,
+body {
+  background: #ffffff;
+  color: var(--navy);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(133, 183, 235, 0.45);
+  color: var(--navy);
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white shadow-soft transition-all duration-300 hover:bg-clinical-blue hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-accent focus-visible:ring-offset-2;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-navy/15 bg-white px-5 py-3 text-sm font-semibold text-navy shadow-soft transition-all duration-300 hover:border-clinical-blue/30 hover:text-clinical-blue hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-accent focus-visible:ring-offset-2;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-navy/80 transition-colors hover:text-navy;
+  }
+
+  .eyebrow {
+    @apply inline-flex items-center gap-2 rounded-full border border-navy/10 bg-soft-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-clinical-blue;
+  }
+
+  .section-title {
+    @apply font-display text-3xl font-semibold leading-tight tracking-tight text-navy sm:text-4xl lg:text-5xl;
+  }
+
+  .section-sub {
+    @apply mt-4 max-w-2xl text-base text-navy/70 sm:text-lg;
+  }
+
+  .card-soft {
+    @apply rounded-2xl border border-navy/8 bg-white p-6 shadow-soft transition-all duration-300;
+  }
+
+  .card-hover {
+    @apply hover:-translate-y-1 hover:border-clinical-blue/20 hover:shadow-lift;
+  }
+
+  .gradient-bg-soft {
+    background: radial-gradient(
+        1200px 600px at 10% -10%,
+        rgba(133, 183, 235, 0.18),
+        transparent 60%
+      ),
+      radial-gradient(
+        900px 500px at 100% 0%,
+        rgba(29, 158, 117, 0.10),
+        transparent 60%
+      ),
+      linear-gradient(180deg, #ffffff 0%, #f7f9fc 100%);
+  }
+
+  .gradient-card-navy {
+    background: linear-gradient(135deg, #042c53 0%, #0a4a8a 60%, #185fa5 100%);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .mask-fade-y {
+    mask-image: linear-gradient(
+      180deg,
+      transparent 0,
+      #000 8%,
+      #000 92%,
+      transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      180deg,
+      transparent 0,
+      #000 8%,
+      #000 92%,
+      transparent 100%
+    );
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
