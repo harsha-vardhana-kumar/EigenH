@@ -1,6 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useRef } from "react";
+import { useGSAP } from "@gsap/react";
+import { gsap, prefersReducedMotion } from "@/lib/gsap";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import {
   AlertIcon,
@@ -45,15 +47,64 @@ const TONE_BG: Record<(typeof STEPS)[number]["tone"], string> = {
 };
 
 export function Safety() {
+  const root = useRef<HTMLElement>(null);
+
+  useGSAP(
+    () => {
+      if (prefersReducedMotion()) return;
+      const scope = root.current;
+      if (!scope) return;
+
+      // Left content fades up
+      gsap.from(scope.querySelectorAll("[data-safety-left] > *"), {
+        opacity: 0,
+        y: 20,
+        duration: 0.7,
+        stagger: 0.1,
+        scrollTrigger: { trigger: scope, start: "top 75%", once: true },
+      });
+
+      // Right vertical connector draws downward as steps reveal
+      const rail = scope.querySelector<HTMLElement>("[data-safety-rail]");
+      const steps = scope.querySelectorAll<HTMLElement>("[data-safety-step]");
+
+      if (rail) {
+        gsap.set(rail, { scaleY: 0, transformOrigin: "top center" });
+      }
+      gsap.set(steps, { opacity: 0, y: 16 });
+
+      const tl = gsap.timeline({
+        scrollTrigger: { trigger: scope, start: "top 70%", once: true },
+        defaults: { ease: "power3.out" },
+      });
+
+      if (rail) {
+        tl.to(rail, { scaleY: 1, duration: 1.0, ease: "power2.out" });
+      }
+      tl.to(
+        steps,
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.55,
+          stagger: 0.18,
+        },
+        rail ? "-=0.7" : "+=0"
+      );
+    },
+    { scope: root }
+  );
+
   return (
     <section
+      ref={root}
       id="safety"
       className="relative scroll-mt-24 bg-soft-white/50 py-20 sm:py-24"
       aria-labelledby="safety-title"
     >
       <div className="container-page">
         <div className="grid gap-10 lg:grid-cols-12 lg:gap-12">
-          <div className="lg:col-span-5">
+          <div className="lg:col-span-5" data-safety-left>
             <SectionHeader
               eyebrow="Safety & escalation"
               title={
@@ -103,27 +154,24 @@ export function Safety() {
             <div className="relative rounded-3xl border border-navy/8 bg-white p-5 shadow-lift sm:p-6">
               {/* Vertical timeline / flow */}
               <ol className="relative space-y-4">
+                {/* The animated rail behind the icons */}
+                <span
+                  data-safety-rail
+                  aria-hidden="true"
+                  className="absolute left-[19px] top-2 h-[calc(100%-1rem)] w-px bg-gradient-to-b from-clinical-blue/30 via-clinical-blue/30 to-clinical-green/30"
+                />
                 {STEPS.map((s, i) => (
-                  <motion.li
+                  <li
                     key={s.title}
-                    initial={{ opacity: 0, y: 12 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: "-60px" }}
-                    transition={{ duration: 0.5, delay: i * 0.1 }}
+                    data-safety-step
                     className="relative flex gap-4"
                   >
                     <div className="flex flex-col items-center">
                       <span
-                        className={`inline-flex h-10 w-10 items-center justify-center rounded-xl ${TONE_BG[s.tone]}`}
+                        className={`relative inline-flex h-10 w-10 items-center justify-center rounded-xl ${TONE_BG[s.tone]}`}
                       >
                         {s.icon}
                       </span>
-                      {i < STEPS.length - 1 ? (
-                        <span
-                          aria-hidden="true"
-                          className="mt-1 w-px flex-1 bg-gradient-to-b from-clinical-blue/30 to-clinical-green/30"
-                        />
-                      ) : null}
                     </div>
                     <div className="-mt-0.5 flex-1 rounded-2xl border border-navy/8 bg-soft-white/50 p-4">
                       <div className="flex items-center justify-between gap-3">
@@ -138,7 +186,7 @@ export function Safety() {
                         {s.desc}
                       </p>
                     </div>
-                  </motion.li>
+                  </li>
                 ))}
               </ol>
             </div>

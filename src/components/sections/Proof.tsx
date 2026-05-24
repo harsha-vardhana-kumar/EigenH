@@ -1,6 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useRef } from "react";
+import { useGSAP } from "@gsap/react";
+import { gsap, prefersReducedMotion } from "@/lib/gsap";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import {
   CalendarIcon,
@@ -13,17 +15,20 @@ const METRICS = [
   {
     icon: <PhoneIcon className="h-5 w-5" />,
     label: "Reduce missed calls",
-    detail: "Answer every call, day or night — recover bookings that would have hit voicemail.",
+    detail:
+      "Answer every call, day or night — recover bookings that would have hit voicemail.",
   },
   {
     icon: <ClockIcon className="h-5 w-5" />,
     label: "Save front-desk hours",
-    detail: "Offload repetitive intake, FAQs, reschedules, and confirmations.",
+    detail:
+      "Offload repetitive intake, FAQs, reschedules, and confirmations.",
   },
   {
     icon: <CalendarIcon className="h-5 w-5" />,
     label: "Book more appointments",
-    detail: "Always-on booking captures evenings, weekends, and holiday demand.",
+    detail:
+      "Always-on booking captures evenings, weekends, and holiday demand.",
   },
   {
     icon: <ChartIcon className="h-5 w-5" />,
@@ -33,8 +38,48 @@ const METRICS = [
 ];
 
 export function Proof() {
+  const root = useRef<HTMLElement>(null);
+
+  useGSAP(
+    () => {
+      if (prefersReducedMotion()) return;
+      const scope = root.current;
+      if (!scope) return;
+
+      gsap.from(scope.querySelectorAll('[data-anim^="header-"]'), {
+        opacity: 0,
+        y: 20,
+        duration: 0.7,
+        stagger: 0.08,
+        scrollTrigger: { trigger: scope, start: "top 78%", once: true },
+      });
+
+      gsap.from(scope.querySelectorAll("[data-metric-card]"), {
+        opacity: 0,
+        y: 22,
+        duration: 0.6,
+        stagger: 0.08,
+        scrollTrigger: { trigger: scope, start: "top 72%", once: true },
+      });
+
+      gsap.from(scope.querySelectorAll("[data-placeholder]"), {
+        opacity: 0,
+        y: 18,
+        duration: 0.7,
+        stagger: 0.12,
+        scrollTrigger: {
+          trigger: scope.querySelector("[data-placeholder]"),
+          start: "top 80%",
+          once: true,
+        },
+      });
+    },
+    { scope: root }
+  );
+
   return (
     <section
+      ref={root}
       id="proof"
       className="relative scroll-mt-24 py-20 sm:py-24"
       aria-labelledby="proof-title"
@@ -52,13 +97,10 @@ export function Proof() {
         />
 
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {METRICS.map((m, i) => (
-            <motion.div
+          {METRICS.map((m) => (
+            <div
               key={m.label}
-              initial={{ opacity: 0, y: 14 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ duration: 0.45, delay: i * 0.07 }}
+              data-metric-card
               className="card-soft card-hover"
             >
               <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-clinical-blue/10 text-clinical-blue">
@@ -70,13 +112,14 @@ export function Proof() {
               <p className="mt-1.5 text-[13px] leading-relaxed text-navy/65">
                 {m.detail}
               </p>
-            </motion.div>
+            </div>
           ))}
         </div>
 
         {/* Placeholder testimonial / proof blocks */}
         <div className="mt-12 grid gap-4 lg:grid-cols-3">
           <div
+            data-placeholder
             aria-label="Doctor testimonial placeholder"
             className="relative rounded-2xl border border-dashed border-navy/15 bg-white p-6"
           >
@@ -98,6 +141,7 @@ export function Proof() {
           </div>
 
           <div
+            data-placeholder
             aria-label="Clinic result placeholder"
             className="relative rounded-2xl border border-dashed border-navy/15 bg-white p-6"
           >
@@ -107,10 +151,7 @@ export function Proof() {
             </span>
             <div className="mt-5 grid grid-cols-2 gap-3">
               {["Bookings", "Missed calls", "Hours saved", "CSAT"].map((k) => (
-                <div
-                  key={k}
-                  className="rounded-xl bg-soft-white/70 p-3"
-                >
+                <div key={k} className="rounded-xl bg-soft-white/70 p-3">
                   <div className="text-[11px] font-semibold uppercase tracking-wider text-navy/50">
                     {k}
                   </div>
@@ -124,6 +165,7 @@ export function Proof() {
           </div>
 
           <div
+            data-placeholder
             aria-label="Video testimonial placeholder"
             className="relative rounded-2xl border border-dashed border-navy/15 bg-white p-6"
           >
@@ -138,10 +180,7 @@ export function Proof() {
                   className="h-5 w-5 text-clinical-blue"
                   aria-hidden="true"
                 >
-                  <path
-                    d="M8 5v14l11-7L8 5Z"
-                    fill="currentColor"
-                  />
+                  <path d="M8 5v14l11-7L8 5Z" fill="currentColor" />
                 </svg>
               </div>
             </div>

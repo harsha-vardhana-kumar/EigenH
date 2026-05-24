@@ -1,6 +1,3 @@
-"use client";
-
-import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 
 type Props = {
@@ -11,6 +8,10 @@ type Props = {
   className?: string;
 };
 
+/**
+ * Plain semantic markup. Entrance animations are added by the parent
+ * section's GSAP timeline using [data-anim] hooks below.
+ */
 export function SectionHeader({
   eyebrow,
   title,
@@ -24,36 +25,24 @@ export function SectionHeader({
       className={`${isCenter ? "mx-auto text-center" : ""} max-w-3xl ${className}`}
     >
       {eyebrow ? (
-        <motion.span
-          initial={{ opacity: 0, y: 8 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.4 }}
-          className="eyebrow"
-        >
+        <span className="eyebrow" data-anim="header-eyebrow">
           <span className="h-1.5 w-1.5 rounded-full bg-clinical-green" />
           {eyebrow}
-        </motion.span>
+        </span>
       ) : null}
-      <motion.h2
-        initial={{ opacity: 0, y: 12 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-80px" }}
-        transition={{ duration: 0.5, delay: 0.05 }}
+      <h2
         className={`section-title ${eyebrow ? "mt-4" : ""}`}
+        data-anim="header-title"
       >
         {title}
-      </motion.h2>
+      </h2>
       {description ? (
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.5, delay: 0.12 }}
+        <p
           className={`section-sub ${isCenter ? "mx-auto" : ""}`}
+          data-anim="header-desc"
         >
           {description}
-        </motion.p>
+        </p>
       ) : null}
     </div>
   );
