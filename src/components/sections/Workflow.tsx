@@ -1,6 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useRef } from "react";
+import { useGSAP } from "@gsap/react";
+import { gsap, prefersReducedMotion } from "@/lib/gsap";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import {
   AlertIcon,
@@ -146,13 +148,14 @@ function ConnectorDots() {
   return (
     <div
       aria-hidden="true"
+      data-connector-dots
       className="hidden h-6 items-center justify-center gap-1.5 lg:flex"
     >
       {[0, 1, 2, 3].map((i) => (
         <span
           key={i}
-          className="h-1.5 w-1.5 rounded-full bg-clinical-blue/30 animate-pulse-dot"
-          style={{ animationDelay: `${i * 0.18}s` }}
+          className="h-1.5 w-1.5 rounded-full bg-clinical-blue/30"
+          style={{ animation: `pulse-dot 2.2s ease-in-out ${i * 0.18}s infinite` }}
         />
       ))}
     </div>
@@ -160,8 +163,100 @@ function ConnectorDots() {
 }
 
 export function Workflow() {
+  const root = useRef<HTMLElement>(null);
+
+  useGSAP(
+    () => {
+      if (prefersReducedMotion()) return;
+      const scope = root.current;
+      if (!scope) return;
+
+      // Header reveal
+      gsap.from(scope.querySelectorAll('[data-anim^="header-"]'), {
+        opacity: 0,
+        y: 20,
+        duration: 0.7,
+        stagger: 0.08,
+        scrollTrigger: { trigger: scope, start: "top 78%", once: true },
+      });
+
+      // Main flow cards: left -> right reveal
+      const mainCards = scope.querySelectorAll("[data-main-card]");
+      gsap.from(mainCards, {
+        opacity: 0,
+        x: -24,
+        duration: 0.65,
+        stagger: 0.1,
+        scrollTrigger: {
+          trigger: scope.querySelector("[data-main-flow]"),
+          start: "top 75%",
+          once: true,
+        },
+      });
+
+      // Connector dots fade in alongside
+      gsap.from(scope.querySelectorAll("[data-connector-dots]"), {
+        opacity: 0,
+        scale: 0.9,
+        duration: 0.5,
+        stagger: 0.12,
+        scrollTrigger: {
+          trigger: scope.querySelector("[data-main-flow]"),
+          start: "top 75%",
+          once: true,
+        },
+      });
+
+      // Final navy card glow pulse — subtle, only once
+      const finalCard = scope.querySelector("[data-final-card]");
+      if (finalCard) {
+        gsap.fromTo(
+          finalCard,
+          { boxShadow: "0 0 0 0 rgba(133,183,235,0.0)" },
+          {
+            boxShadow:
+              "0 0 0 6px rgba(133,183,235,0.15), 0 18px 40px -16px rgba(4,44,83,0.25)",
+            duration: 1.2,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: finalCard,
+              start: "top 80%",
+              once: true,
+            },
+          }
+        );
+      }
+
+      // Branch cards: stagger fade up + steps reveal one-by-one inside each
+      const branchCards = scope.querySelectorAll("[data-branch-card]");
+      branchCards.forEach((card) => {
+        const tl = gsap.timeline({
+          scrollTrigger: { trigger: card, start: "top 82%", once: true },
+        });
+
+        tl.from(card, {
+          opacity: 0,
+          y: 22,
+          duration: 0.6,
+        }).from(
+          card.querySelectorAll("[data-branch-step]"),
+          {
+            opacity: 0,
+            x: -10,
+            duration: 0.45,
+            stagger: 0.12,
+            ease: "power2.out",
+          },
+          "-=0.25"
+        );
+      });
+    },
+    { scope: root }
+  );
+
   return (
     <section
+      ref={root}
       id="workflow"
       className="relative scroll-mt-24 bg-soft-white/50 py-20 sm:py-24"
       aria-labelledby="workflow-title"
@@ -178,19 +273,16 @@ export function Workflow() {
         />
 
         {/* Main vertical / horizontal flow */}
-        <div className="relative mt-12 rounded-3xl border border-navy/8 bg-white p-5 shadow-soft sm:p-8">
+        <div
+          data-main-flow
+          className="relative mt-12 rounded-3xl border border-navy/8 bg-white p-5 shadow-soft sm:p-8"
+        >
           <div className="grid items-stretch gap-3 lg:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr]">
             {/* Row 1: 4 nodes */}
             {MAIN_FLOW.slice(0, 4).map((s, i) => (
-              <motion.div
-                key={s.title}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-60px" }}
-                transition={{ duration: 0.5, delay: i * 0.08 }}
-                className="contents"
-              >
+              <div key={s.title} className="contents">
                 <div
+                  data-main-card
                   className={`rounded-2xl border border-navy/8 bg-white p-4 shadow-soft ${
                     s.tone === "navy" ? "gradient-card-navy text-white" : ""
                   }`}
@@ -222,7 +314,7 @@ export function Workflow() {
                   </p>
                 </div>
                 {i < 3 ? <ConnectorDots /> : null}
-              </motion.div>
+              </div>
             ))}
           </div>
 
@@ -233,51 +325,49 @@ export function Workflow() {
           />
 
           <div className="grid items-stretch gap-3 lg:grid-cols-[1fr_auto_1fr_auto_1fr]">
-            {MAIN_FLOW.slice(4).map((s, i) => (
-              <motion.div
-                key={s.title}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-60px" }}
-                transition={{ duration: 0.5, delay: i * 0.08 }}
-                className="contents"
-              >
-                <div
-                  className={`rounded-2xl border border-navy/8 bg-white p-4 shadow-soft ${
-                    s.tone === "navy" ? "gradient-card-navy text-white" : ""
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span
-                      className={`inline-flex h-8 w-8 items-center justify-center rounded-lg ${
-                        s.tone === "navy"
-                          ? "bg-white/15 text-white"
-                          : s.tone === "green"
-                            ? "bg-clinical-green/10 text-clinical-green"
-                            : "bg-clinical-blue/10 text-clinical-blue"
-                      }`}
-                    >
-                      {s.icon}
-                    </span>
-                    <div
-                      className={`text-[13px] font-semibold ${
-                        s.tone === "navy" ? "text-white" : "text-navy"
-                      }`}
-                    >
-                      {s.title}
-                    </div>
-                  </div>
-                  <p
-                    className={`mt-2 text-[12px] leading-relaxed ${
-                      s.tone === "navy" ? "text-white/80" : "text-navy/60"
+            {MAIN_FLOW.slice(4).map((s, i) => {
+              const isFinal = i === MAIN_FLOW.slice(4).length - 1;
+              return (
+                <div key={s.title} className="contents">
+                  <div
+                    data-main-card
+                    {...(isFinal ? { "data-final-card": true } : {})}
+                    className={`rounded-2xl border border-navy/8 bg-white p-4 shadow-soft transition-shadow ${
+                      s.tone === "navy" ? "gradient-card-navy text-white" : ""
                     }`}
                   >
-                    {s.desc}
-                  </p>
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className={`inline-flex h-8 w-8 items-center justify-center rounded-lg ${
+                          s.tone === "navy"
+                            ? "bg-white/15 text-white"
+                            : s.tone === "green"
+                              ? "bg-clinical-green/10 text-clinical-green"
+                              : "bg-clinical-blue/10 text-clinical-blue"
+                        }`}
+                      >
+                        {s.icon}
+                      </span>
+                      <div
+                        className={`text-[13px] font-semibold ${
+                          s.tone === "navy" ? "text-white" : "text-navy"
+                        }`}
+                      >
+                        {s.title}
+                      </div>
+                    </div>
+                    <p
+                      className={`mt-2 text-[12px] leading-relaxed ${
+                        s.tone === "navy" ? "text-white/80" : "text-navy/60"
+                      }`}
+                    >
+                      {s.desc}
+                    </p>
+                  </div>
+                  {i < 2 ? <ConnectorDots /> : null}
                 </div>
-                {i < 2 ? <ConnectorDots /> : null}
-              </motion.div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -293,14 +383,15 @@ export function Workflow() {
           </div>
 
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {BRANCHES.map((b, idx) => (
-              <motion.div
+            {BRANCHES.map((b) => (
+              <div
                 key={b.id}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-60px" }}
-                transition={{ duration: 0.5, delay: idx * 0.08 }}
-                className="card-soft card-hover relative overflow-hidden"
+                data-branch-card
+                className={`card-soft card-hover relative overflow-hidden ${
+                  b.tone === "amber"
+                    ? "ring-1 ring-amber-200/40 hover:ring-amber-300/60"
+                    : ""
+                }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
@@ -323,7 +414,7 @@ export function Workflow() {
 
                 <ol className="relative mt-5 space-y-3 border-l border-clinical-blue/15 pl-5">
                   {b.steps.map((s, i) => (
-                    <li key={s.title} className="relative">
+                    <li key={s.title} data-branch-step className="relative">
                       <span
                         aria-hidden="true"
                         className="absolute -left-[27px] top-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-white"
@@ -336,7 +427,9 @@ export function Workflow() {
                                 ? "bg-clinical-green"
                                 : "bg-clinical-blue"
                           }`}
-                          style={{ animationDelay: `${i * 0.2}s` }}
+                          style={{
+                            animation: `pulse-dot 2.2s ease-in-out ${i * 0.2}s infinite`,
+                          }}
                         />
                       </span>
                       <div className="text-[13px] font-semibold text-navy">
@@ -348,7 +441,7 @@ export function Workflow() {
                     </li>
                   ))}
                 </ol>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>

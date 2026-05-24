@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useRef } from "react";
+import { useGSAP } from "@gsap/react";
+import { gsap, prefersReducedMotion } from "@/lib/gsap";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import {
   CalendarIcon,
@@ -29,10 +30,7 @@ const TRANSCRIPT: Turn[] = [
     text: "Great. I found an available slot tomorrow at 10:30 AM. Would you like me to book it?",
   },
   { speaker: "patient", text: "Yes." },
-  {
-    speaker: "ai",
-    text: "Done. I’ve sent a confirmation to your phone.",
-  },
+  { speaker: "ai", text: "Done. I’ve sent a confirmation to your phone." },
 ];
 
 const OUTCOMES = [
@@ -41,24 +39,29 @@ const OUTCOMES = [
     title: "Appointment booked",
     detail: "Tomorrow · 10:30 AM · Cleaning",
     tone: "green",
+    /** index of transcript turn to anchor reveal to */
+    afterTurn: 3,
   },
   {
     icon: <MessageIcon className="h-4 w-4" />,
     title: "SMS confirmation sent",
     detail: "To +1 (415) 555-0142",
     tone: "blue",
+    afterTurn: 5,
   },
   {
     icon: <UserIcon className="h-4 w-4" />,
     title: "Patient details captured",
     detail: "Name · Phone · Insurance",
     tone: "blue",
+    afterTurn: 2,
   },
   {
     icon: <FileIcon className="h-4 w-4" />,
     title: "Call summary saved",
     detail: "Synced to PMS · 32 sec",
     tone: "navy",
+    afterTurn: 5,
   },
 ] as const;
 
@@ -68,39 +71,103 @@ const OUTCOME_TONE: Record<(typeof OUTCOMES)[number]["tone"], string> = {
   navy: "bg-navy/10 text-navy",
 };
 
-function useStaggeredReveal(count: number, intervalMs = 1100) {
-  const [visible, setVisible] = useState(0);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const reduce = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
-    if (reduce) {
-      setVisible(count);
-      return;
-    }
-    setVisible(1);
-    const id = setInterval(() => {
-      setVisible((v) => {
-        if (v >= count) {
-          clearInterval(id);
-          return v;
-        }
-        return v + 1;
-      });
-    }, intervalMs);
-    return () => clearInterval(id);
-  }, [count, intervalMs]);
-
-  return visible;
-}
-
 export function LiveDemo() {
-  const visible = useStaggeredReveal(TRANSCRIPT.length, 950);
+  const root = useRef<HTMLElement>(null);
+
+  useGSAP(
+    () => {
+      const scope = root.current;
+      if (!scope) return;
+
+      const reduce = prefersReducedMotion();
+
+      const turns = scope.querySelectorAll<HTMLElement>("[data-chat-turn]");
+      const typing = scope.querySelector<HTMLElement>("[data-chat-typing]");
+      const outcomes =
+        scope.querySelectorAll<HTMLElement>("[data-outcome-card]");
+      const finalOutcome = scope.querySelector<HTMLElement>(
+        "[data-outcome-final]"
+      );
+
+      if (reduce) {
+        gsap.set(turns, { opacity: 1, y: 0 });
+        gsap.set(outcomes, { opacity: 1, y: 0 });
+        if (typing) gsap.set(typing, { opacity: 0, display: "none" });
+        return;
+      }
+
+      // Initial states
+      gsap.set(turns, { opacity: 0, y: 12 });
+      gsap.set(outcomes, { opacity: 0, y: 14 });
+      if (typing) gsap.set(typing, { opacity: 0 });
+
+      // Header reveal
+      gsap.from(scope.querySelectorAll('[data-anim^="header-"]'), {
+        opacity: 0,
+        y: 20,
+        duration: 0.7,
+        stagger: 0.08,
+        scrollTrigger: { trigger: scope, start: "top 78%", once: true },
+      });
+
+      // Build the chat sequence inside a master timeline.
+      const tl = gsap.timeline({
+        scrollTrigger: { trigger: scope, start: "top 65%", once: true },
+        defaults: { ease: "power2.out" },
+      });
+
+      turns.forEach((turn, idx) => {
+        const isAI = turn.dataset.speaker === "ai";
+
+        if (isAI && typing) {
+          tl.set(typing, { opacity: 1 }).to(typing, {
+            opacity: 1,
+            duration: 0.7, // dwell while "typing"
+          });
+        }
+
+        tl.to(turn, { opacity: 1, y: 0, duration: 0.45 }, ">");
+
+        if (isAI && typing) {
+          tl.set(typing, { opacity: 0 });
+        }
+
+        // Reveal outcome cards anchored to this turn
+        outcomes.forEach((card) => {
+          if (Number(card.dataset.afterTurn) === idx) {
+            tl.to(
+              card,
+              { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" },
+              "<+0.1"
+            );
+          }
+        });
+
+        // small idle gap between turns
+        tl.to({}, { duration: 0.35 });
+      });
+
+      // Final outcome highlight (Call summary saved)
+      if (finalOutcome) {
+        tl.to(
+          finalOutcome,
+          {
+            keyframes: [
+              { boxShadow: "0 0 0 6px rgba(29,158,117,0.18)", duration: 0.55 },
+              { boxShadow: "0 0 0 0 rgba(29,158,117,0)", duration: 0.7 },
+            ],
+            ease: "power2.out",
+          },
+          ">"
+        );
+      }
+    },
+    { scope: root }
+  );
 
   return (
     <section
+      ref={root}
       id="live-demo"
       className="relative scroll-mt-24 bg-soft-white/50 py-20 sm:py-24"
       aria-labelledby="live-demo-title"
@@ -140,23 +207,14 @@ export function LiveDemo() {
                 </div>
               </div>
 
-              <ul
-                aria-live="polite"
-                className="mt-5 space-y-3"
-              >
+              <ul aria-live="polite" className="mt-5 space-y-3">
                 {TRANSCRIPT.map((t, i) => {
-                  const show = i < visible;
                   const isAI = t.speaker === "ai";
                   return (
-                    <motion.li
+                    <li
                       key={i}
-                      initial={false}
-                      animate={
-                        show
-                          ? { opacity: 1, y: 0 }
-                          : { opacity: 0, y: 8 }
-                      }
-                      transition={{ duration: 0.35 }}
+                      data-chat-turn
+                      data-speaker={t.speaker}
                       className={`flex items-start gap-2.5 ${
                         isAI ? "" : "flex-row-reverse"
                       }`}
@@ -190,28 +248,28 @@ export function LiveDemo() {
                         </div>
                         {t.text}
                       </div>
-                    </motion.li>
+                    </li>
                   );
                 })}
-                {visible < TRANSCRIPT.length ? (
-                  <li
-                    aria-hidden="true"
-                    className="flex items-center gap-2 pl-11 text-[12px] text-navy/50"
-                  >
-                    <span className="flex gap-1">
-                      <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-clinical-blue" />
-                      <span
-                        className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-clinical-blue"
-                        style={{ animationDelay: "0.2s" }}
-                      />
-                      <span
-                        className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-clinical-blue"
-                        style={{ animationDelay: "0.4s" }}
-                      />
-                    </span>
-                    transcribing…
-                  </li>
-                ) : null}
+                {/* Typing indicator (shown by GSAP between turns) */}
+                <li
+                  data-chat-typing
+                  aria-hidden="true"
+                  className="flex items-center gap-2 pl-11 text-[12px] text-navy/50"
+                >
+                  <span className="flex gap-1">
+                    <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-clinical-blue" />
+                    <span
+                      className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-clinical-blue"
+                      style={{ animationDelay: "0.2s" }}
+                    />
+                    <span
+                      className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-clinical-blue"
+                      style={{ animationDelay: "0.4s" }}
+                    />
+                  </span>
+                  EigenH is responding…
+                </li>
               </ul>
 
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-navy/8 pt-4">
@@ -229,13 +287,14 @@ export function LiveDemo() {
           {/* Outcomes */}
           <div className="lg:col-span-5">
             <div className="grid gap-3">
-              {OUTCOMES.map((o, i) => (
-                <motion.div
+              {OUTCOMES.map((o, idx) => (
+                <div
                   key={o.title}
-                  initial={{ opacity: 0, x: 12 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true, margin: "-60px" }}
-                  transition={{ duration: 0.45, delay: 0.1 + i * 0.1 }}
+                  data-outcome-card
+                  data-after-turn={o.afterTurn}
+                  {...(idx === OUTCOMES.length - 1
+                    ? { "data-outcome-final": true }
+                    : {})}
                   className="card-soft card-hover flex items-start gap-3"
                 >
                   <span
@@ -254,7 +313,7 @@ export function LiveDemo() {
                   <span className="ml-auto inline-flex h-6 w-6 flex-none items-center justify-center rounded-full bg-clinical-green/12 text-clinical-green">
                     <CheckIcon className="h-3.5 w-3.5" />
                   </span>
-                </motion.div>
+                </div>
               ))}
 
               <div className="mt-2 rounded-2xl border border-dashed border-navy/15 bg-white/60 p-4 text-[12px] text-navy/55">

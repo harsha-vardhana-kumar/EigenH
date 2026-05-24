@@ -1,6 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useRef } from "react";
+import { useGSAP } from "@gsap/react";
+import { gsap, prefersReducedMotion } from "@/lib/gsap";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import {
   AlertIcon,
@@ -69,8 +71,47 @@ const FEATURES = [
 ];
 
 export function Features() {
+  const root = useRef<HTMLElement>(null);
+
+  useGSAP(
+    () => {
+      if (prefersReducedMotion()) return;
+      const scope = root.current;
+      if (!scope) return;
+
+      gsap.from(scope.querySelectorAll('[data-anim^="header-"]'), {
+        opacity: 0,
+        y: 20,
+        duration: 0.7,
+        stagger: 0.08,
+        scrollTrigger: { trigger: scope, start: "top 78%", once: true },
+      });
+
+      gsap.from(scope.querySelectorAll("[data-feature-card]"), {
+        opacity: 0,
+        y: 22,
+        scale: 0.97,
+        duration: 0.55,
+        stagger: 0.05,
+        ease: "power3.out",
+        scrollTrigger: { trigger: scope, start: "top 72%", once: true },
+      });
+
+      gsap.from(scope.querySelectorAll("[data-feature-icon]"), {
+        scale: 0.9,
+        opacity: 0,
+        duration: 0.5,
+        stagger: 0.04,
+        ease: "back.out(1.4)",
+        scrollTrigger: { trigger: scope, start: "top 72%", once: true },
+      });
+    },
+    { scope: root }
+  );
+
   return (
     <section
+      ref={root}
       id="features"
       className="relative scroll-mt-24 py-20 sm:py-24"
       aria-labelledby="features-title"
@@ -88,16 +129,12 @@ export function Features() {
         />
 
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {FEATURES.map((f, i) => (
-            <motion.div
-              key={f.title}
-              initial={{ opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-40px" }}
-              transition={{ duration: 0.45, delay: i * 0.04 }}
-              className="card-soft card-hover"
-            >
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-clinical-blue/10 text-clinical-blue">
+          {FEATURES.map((f) => (
+            <div key={f.title} data-feature-card className="card-soft card-hover">
+              <span
+                data-feature-icon
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-clinical-blue/10 text-clinical-blue"
+              >
                 {f.icon}
               </span>
               <h3 className="mt-4 text-[14px] font-semibold text-navy">
@@ -106,7 +143,7 @@ export function Features() {
               <p className="mt-1.5 text-[12.5px] leading-relaxed text-navy/65">
                 {f.desc}
               </p>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>

@@ -1,6 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useRef } from "react";
+import { useGSAP } from "@gsap/react";
+import { gsap, prefersReducedMotion } from "@/lib/gsap";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import {
   AlertIcon,
@@ -81,8 +83,58 @@ const TONE_BG: Record<(typeof WORKFLOWS)[number]["tone"], string> = {
 };
 
 export function DentalWorkflows() {
+  const root = useRef<HTMLElement>(null);
+
+  useGSAP(
+    () => {
+      if (prefersReducedMotion()) return;
+      const scope = root.current;
+      if (!scope) return;
+
+      gsap.from(scope.querySelectorAll('[data-anim^="header-"]'), {
+        opacity: 0,
+        y: 20,
+        duration: 0.7,
+        stagger: 0.08,
+        scrollTrigger: { trigger: scope, start: "top 78%", once: true },
+      });
+
+      gsap.from(scope.querySelectorAll("[data-dental-card]"), {
+        opacity: 0,
+        y: 24,
+        scale: 0.97,
+        duration: 0.6,
+        stagger: 0.07,
+        scrollTrigger: { trigger: scope, start: "top 72%", once: true },
+      });
+
+      // Hover micro-interaction (skip on touch / reduced)
+      const cards = scope.querySelectorAll<HTMLElement>("[data-dental-card]");
+      cards.forEach((card) => {
+        const icon = card.querySelector<HTMLElement>("[data-dental-icon]");
+        const enter = () => {
+          gsap.to(card, { y: -4, duration: 0.3, ease: "power2.out" });
+          if (icon)
+            gsap.to(icon, {
+              scale: 1.06,
+              duration: 0.3,
+              ease: "power2.out",
+            });
+        };
+        const leave = () => {
+          gsap.to(card, { y: 0, duration: 0.4, ease: "power2.out" });
+          if (icon) gsap.to(icon, { scale: 1, duration: 0.4 });
+        };
+        card.addEventListener("mouseenter", enter);
+        card.addEventListener("mouseleave", leave);
+      });
+    },
+    { scope: root }
+  );
+
   return (
     <section
+      ref={root}
       id="dental-workflows"
       className="relative scroll-mt-24 py-20 sm:py-24"
       aria-labelledby="dental-workflows-title"
@@ -100,30 +152,32 @@ export function DentalWorkflows() {
         />
 
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {WORKFLOWS.map((w, i) => (
-            <motion.article
+          {WORKFLOWS.map((w) => (
+            <article
               key={w.title}
-              initial={{ opacity: 0, y: 14 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ duration: 0.45, delay: i * 0.05 }}
-              className="card-soft card-hover group"
+              data-dental-card
+              className="card-soft group relative overflow-hidden border-navy/8 transition-colors duration-300 hover:border-sky-accent/60"
             >
-              <div className="flex items-start justify-between gap-3">
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-sky-accent/15 opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-100"
+              />
+              <div className="relative flex items-start justify-between gap-3">
                 <span
-                  className={`inline-flex h-10 w-10 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-105 ${TONE_BG[w.tone]}`}
+                  data-dental-icon
+                  className={`inline-flex h-10 w-10 items-center justify-center rounded-xl transition-colors duration-300 ${TONE_BG[w.tone]}`}
                 >
                   {w.icon}
                 </span>
                 <HeadsetIcon className="h-5 w-5 text-navy/15" />
               </div>
-              <h3 className="mt-5 text-[15px] font-semibold text-navy">
+              <h3 className="relative mt-5 text-[15px] font-semibold text-navy">
                 {w.title}
               </h3>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-navy/65">
+              <p className="relative mt-1.5 text-[13px] leading-relaxed text-navy/65">
                 {w.desc}
               </p>
-            </motion.article>
+            </article>
           ))}
         </div>
       </div>
