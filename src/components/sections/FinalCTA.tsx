@@ -1,22 +1,66 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { useRef } from "react";
+import { useGSAP } from "@gsap/react";
+import { gsap, prefersReducedMotion } from "@/lib/gsap";
 import { ArrowRightIcon, PhoneIcon } from "@/components/ui/Icons";
 
 export function FinalCTA() {
+  const root = useRef<HTMLElement>(null);
+
+  useGSAP(
+    () => {
+      if (prefersReducedMotion()) return;
+      const scope = root.current;
+      if (!scope) return;
+
+      gsap.from(scope.querySelector("[data-cta-block]"), {
+        opacity: 0,
+        y: 24,
+        scale: 0.985,
+        duration: 0.85,
+        ease: "power3.out",
+        scrollTrigger: { trigger: scope, start: "top 75%", once: true },
+      });
+
+      // Soft pulse on the on-call dot inside the right card
+      const dot = scope.querySelector<HTMLElement>("[data-oncall-dot]");
+      if (dot) {
+        gsap.to(dot, {
+          scale: 1.35,
+          opacity: 0.7,
+          duration: 1.4,
+          yoyo: true,
+          repeat: -1,
+          ease: "sine.inOut",
+        });
+      }
+
+      // CTA button hover micro-interaction
+      const buttons = scope.querySelectorAll<HTMLElement>("[data-cta-btn]");
+      buttons.forEach((btn) => {
+        const enter = () =>
+          gsap.to(btn, { y: -2, duration: 0.25, ease: "power2.out" });
+        const leave = () =>
+          gsap.to(btn, { y: 0, duration: 0.3, ease: "power2.out" });
+        btn.addEventListener("mouseenter", enter);
+        btn.addEventListener("mouseleave", leave);
+      });
+    },
+    { scope: root }
+  );
+
   return (
     <section
+      ref={root}
       id="book-demo"
       className="relative scroll-mt-24 py-20 sm:py-24"
       aria-labelledby="cta-title"
     >
       <div className="container-page">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.6 }}
+        <div
+          data-cta-block
           className="relative overflow-hidden rounded-3xl border border-white/10 gradient-card-navy p-8 text-white shadow-lift sm:p-12"
         >
           {/* glow accents */}
@@ -49,6 +93,7 @@ export function FinalCTA() {
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 <Link
                   href="#book-demo"
+                  data-cta-btn
                   className="btn-primary bg-white text-navy hover:bg-soft-white hover:text-navy"
                 >
                   Book a Demo
@@ -56,6 +101,7 @@ export function FinalCTA() {
                 </Link>
                 <Link
                   href="#workflow"
+                  data-cta-btn
                   className="btn-secondary border-white/25 bg-white/10 text-white hover:bg-white/15 hover:text-white"
                 >
                   View Dental Workflow
@@ -70,8 +116,12 @@ export function FinalCTA() {
                     <PhoneIcon className="h-4 w-4" />
                   </span>
                   <div>
-                    <div className="text-[12px] uppercase tracking-wider text-white/65">
-                      Your AI receptionist
+                    <div className="flex items-center gap-2 text-[12px] uppercase tracking-wider text-white/65">
+                      <span
+                        data-oncall-dot
+                        className="inline-block h-1.5 w-1.5 rounded-full bg-clinical-green"
+                      />
+                      On call
                     </div>
                     <div className="text-[15px] font-semibold">
                       EigenH Reach is on call
@@ -99,7 +149,7 @@ export function FinalCTA() {
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );
