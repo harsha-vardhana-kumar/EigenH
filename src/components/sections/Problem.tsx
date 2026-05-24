@@ -1,7 +1,6 @@
 "use client";
 
-import { useRef } from "react";
-import { useGSAP } from "@gsap/react";
+import { useEffect, useRef } from "react";
 import { gsap, prefersReducedMotion } from "@/lib/gsap";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { CountUp } from "@/components/ui/CountUp";
@@ -34,8 +33,9 @@ const ITEMS = [
 export function Problem() {
   const root = useRef<HTMLElement>(null);
 
-  useGSAP(
-    () => {
+  useEffect(() => {
+    if (!root.current) return;
+    const ctx = gsap.context(() => {
       if (prefersReducedMotion()) return;
       const scope = root.current;
       if (!scope) return;
@@ -70,9 +70,9 @@ export function Problem() {
         stagger: 0.1,
         scrollTrigger: { trigger: scope, start: "top 70%", once: true },
       });
-    },
-    { scope: root }
-  );
+    }, root);
+    return () => ctx.revert();
+  }, []);
 
   return (
     <section

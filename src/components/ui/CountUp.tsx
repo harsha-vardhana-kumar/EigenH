@@ -1,7 +1,6 @@
 "use client";
 
-import { useRef } from "react";
-import { useGSAP } from "@gsap/react";
+import { useEffect, useRef } from "react";
 import { gsap, prefersReducedMotion } from "@/lib/gsap";
 
 type Props = {
@@ -36,8 +35,9 @@ export function CountUp({
 }: Props) {
   const ref = useRef<HTMLSpanElement>(null);
 
-  useGSAP(
-    () => {
+  useEffect(() => {
+    if (!ref.current) return;
+    const ctx = gsap.context(() => {
       const el = ref.current;
       if (!el) return;
 
@@ -70,9 +70,10 @@ export function CountUp({
           el.textContent = `${prefix}${format(obj.v)}${suffix}`;
         },
       });
-    },
-    { scope: ref, dependencies: [to, decimals, duration, prefix, suffix] }
-  );
+    }, ref);
+    return () => ctx.revert();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [to, decimals, duration, prefix, suffix, separator]);
 
   return (
     <span ref={ref} className={className} aria-label={`${prefix}${to}${suffix}`}>

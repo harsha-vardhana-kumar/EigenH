@@ -1,7 +1,6 @@
 "use client";
 
-import { useRef } from "react";
-import { useGSAP } from "@gsap/react";
+import { useEffect, useRef } from "react";
 import { gsap, prefersReducedMotion } from "@/lib/gsap";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import {
@@ -165,8 +164,9 @@ function ConnectorDots() {
 export function Workflow() {
   const root = useRef<HTMLElement>(null);
 
-  useGSAP(
-    () => {
+  useEffect(() => {
+    if (!root.current) return;
+    const ctx = gsap.context(() => {
       if (prefersReducedMotion()) return;
       const scope = root.current;
       if (!scope) return;
@@ -250,9 +250,9 @@ export function Workflow() {
           "-=0.25"
         );
       });
-    },
-    { scope: root }
-  );
+    }, root);
+    return () => ctx.revert();
+  }, []);
 
   return (
     <section

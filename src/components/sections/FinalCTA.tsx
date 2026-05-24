@@ -1,16 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useRef } from "react";
-import { useGSAP } from "@gsap/react";
+import { useEffect, useRef } from "react";
 import { gsap, prefersReducedMotion } from "@/lib/gsap";
 import { ArrowRightIcon, PhoneIcon } from "@/components/ui/Icons";
 
 export function FinalCTA() {
   const root = useRef<HTMLElement>(null);
 
-  useGSAP(
-    () => {
+  useEffect(() => {
+    if (!root.current) return;
+    const ctx = gsap.context(() => {
       if (prefersReducedMotion()) return;
       const scope = root.current;
       if (!scope) return;
@@ -47,9 +47,9 @@ export function FinalCTA() {
         btn.addEventListener("mouseenter", enter);
         btn.addEventListener("mouseleave", leave);
       });
-    },
-    { scope: root }
-  );
+    }, root);
+    return () => ctx.revert();
+  }, []);
 
   return (
     <section

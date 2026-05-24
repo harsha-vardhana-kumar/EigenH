@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRef } from "react";
-import { useGSAP } from "@gsap/react";
+import { useEffect, useRef } from "react";
 import { gsap, prefersReducedMotion } from "@/lib/gsap";
 import { CallFlowDiagram } from "./CallFlowDiagram";
 import { ArrowRightIcon, CheckIcon, PhoneIcon } from "@/components/ui/Icons";
@@ -10,8 +9,9 @@ import { ArrowRightIcon, CheckIcon, PhoneIcon } from "@/components/ui/Icons";
 export function Hero() {
   const root = useRef<HTMLElement>(null);
 
-  useGSAP(
-    () => {
+  useEffect(() => {
+    if (!root.current) return;
+    const ctx = gsap.context(() => {
       if (prefersReducedMotion()) return;
 
       const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
@@ -68,9 +68,9 @@ export function Hero() {
           },
           "-=0.7"
         );
-    },
-    { scope: root }
-  );
+    }, root);
+    return () => ctx.revert();
+  }, []);
 
   return (
     <section

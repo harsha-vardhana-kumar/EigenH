@@ -1,7 +1,6 @@
 "use client";
 
-import { useRef } from "react";
-import { useGSAP } from "@gsap/react";
+import { useEffect, useRef } from "react";
 import { gsap, prefersReducedMotion } from "@/lib/gsap";
 import {
   AlertIcon,
@@ -192,8 +191,9 @@ function FlowLines() {
 export function CallFlowDiagram() {
   const root = useRef<HTMLDivElement>(null);
 
-  useGSAP(
-    () => {
+  useEffect(() => {
+    if (!root.current) return;
+    const ctx = gsap.context(() => {
       const reduce = prefersReducedMotion();
       const scope = root.current;
       if (!scope) return;
@@ -265,9 +265,9 @@ export function CallFlowDiagram() {
           repeat: -1,
         });
       }
-    },
-    { scope: root }
-  );
+    }, root);
+    return () => ctx.revert();
+  }, []);
 
   return (
     <div ref={root} className="relative">

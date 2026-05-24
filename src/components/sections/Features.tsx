@@ -1,7 +1,6 @@
 "use client";
 
-import { useRef } from "react";
-import { useGSAP } from "@gsap/react";
+import { useEffect, useRef } from "react";
 import { gsap, prefersReducedMotion } from "@/lib/gsap";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import {
@@ -73,8 +72,9 @@ const FEATURES = [
 export function Features() {
   const root = useRef<HTMLElement>(null);
 
-  useGSAP(
-    () => {
+  useEffect(() => {
+    if (!root.current) return;
+    const ctx = gsap.context(() => {
       if (prefersReducedMotion()) return;
       const scope = root.current;
       if (!scope) return;
@@ -105,9 +105,9 @@ export function Features() {
         ease: "back.out(1.4)",
         scrollTrigger: { trigger: scope, start: "top 72%", once: true },
       });
-    },
-    { scope: root }
-  );
+    }, root);
+    return () => ctx.revert();
+  }, []);
 
   return (
     <section

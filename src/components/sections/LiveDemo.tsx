@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRef } from "react";
-import { useGSAP } from "@gsap/react";
+import { useEffect, useRef } from "react";
 import { gsap, prefersReducedMotion } from "@/lib/gsap";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import {
@@ -74,8 +73,9 @@ const OUTCOME_TONE: Record<(typeof OUTCOMES)[number]["tone"], string> = {
 export function LiveDemo() {
   const root = useRef<HTMLElement>(null);
 
-  useGSAP(
-    () => {
+  useEffect(() => {
+    if (!root.current) return;
+    const ctx = gsap.context(() => {
       const scope = root.current;
       if (!scope) return;
 
@@ -161,9 +161,9 @@ export function LiveDemo() {
           ">"
         );
       }
-    },
-    { scope: root }
-  );
+    }, root);
+    return () => ctx.revert();
+  }, []);
 
   return (
     <section

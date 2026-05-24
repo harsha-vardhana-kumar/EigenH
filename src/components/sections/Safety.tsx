@@ -1,7 +1,6 @@
 "use client";
 
-import { useRef } from "react";
-import { useGSAP } from "@gsap/react";
+import { useEffect, useRef } from "react";
 import { gsap, prefersReducedMotion } from "@/lib/gsap";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import {
@@ -49,8 +48,9 @@ const TONE_BG: Record<(typeof STEPS)[number]["tone"], string> = {
 export function Safety() {
   const root = useRef<HTMLElement>(null);
 
-  useGSAP(
-    () => {
+  useEffect(() => {
+    if (!root.current) return;
+    const ctx = gsap.context(() => {
       if (prefersReducedMotion()) return;
       const scope = root.current;
       if (!scope) return;
@@ -91,9 +91,9 @@ export function Safety() {
         },
         rail ? "-=0.7" : "+=0"
       );
-    },
-    { scope: root }
-  );
+    }, root);
+    return () => ctx.revert();
+  }, []);
 
   return (
     <section
